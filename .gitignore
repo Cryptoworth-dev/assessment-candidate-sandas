@@ -1,0 +1,17 @@
+# dependencies
+/backend/vendor/
+/frontend/node_modules/
+
+# environment
+.env
+/backend/.env
+
+# build artifacts
+/frontend/dist/
+/frontend/.angular/
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store
+*.log
