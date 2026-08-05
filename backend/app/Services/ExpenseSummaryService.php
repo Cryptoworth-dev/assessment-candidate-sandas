@@ -19,7 +19,7 @@ class ExpenseSummaryService
             ->get()
             ->map(fn (Expense $row) => [
                 'category' => $row->category->value,
-                'category_total' => $this->money($row->category_total),
+                'total' => $this->money($row->category_total),
             ])
             ->all();
 

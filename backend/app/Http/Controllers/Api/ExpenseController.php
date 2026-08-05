@@ -35,7 +35,7 @@ class ExpenseController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreExpenseRequest $request): JsonResponse
+    public function store(StoreExpenseRequest $request): ExpenseResource
     {
         $data = $request->validated();
         $expense = Expense::create($data);
