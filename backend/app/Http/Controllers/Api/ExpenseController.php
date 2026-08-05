@@ -12,6 +12,8 @@ use App\Enums\ExpenseCategory;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Services\ExpenseSummaryService;
+use App\Http\Resources\ExpenseResource;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ExpenseController extends Controller
 {
@@ -21,13 +23,13 @@ class ExpenseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
         $expenses = Expense::query()
             ->orderByDesc('expense_date')
             ->orderByDesc('id')
             ->get();
-        return response()->json(['data' => $expenses]);
+        return ExpenseResource::collection($expenses);
     }
 
     /**
@@ -38,27 +40,27 @@ class ExpenseController extends Controller
         $data = $request->validated();
         $expense = Expense::create($data);
 
-        return response()->json(['data' => $expense], 201);
+        return new ExpenseResource($expense);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Expense $expense): JsonResponse
+    public function show(Expense $expense): ExpenseResource
     {
-        return response()->json(['data' => $expense]);
+        return new ExpenseResource($expense);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateExpenseRequest $request, Expense $expense): JsonResponse
+    public function update(UpdateExpenseRequest $request, Expense $expense): ExpenseResource
     {
         $data = $request->validated();
 
         $expense->update($data);
 
-        return response()->json(['data' => $expense]);
+        return new ExpenseResource($expense->refresh());
     }
 
     /**
