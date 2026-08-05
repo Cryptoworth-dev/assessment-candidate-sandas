@@ -9,9 +9,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use App\Enums\ExpenseCategory;
+use App\Http\Requests\StoreExpenseRequest;
+use App\Http\Requests\UpdateExpenseRequest;
+use App\Services\ExpenseSummaryService;
 
 class ExpenseController extends Controller
 {
+    public function __construct(private readonly ExpenseSummaryService $expenseSummaryService)
+    {
+    }
     /**
      * Display a listing of the resource.
      */
@@ -27,15 +33,9 @@ class ExpenseController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreExpenseRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'description'  => ['required', 'string', 'max:255'],
-            'amount'       => ['required', 'numeric', 'gt:0'],
-            'category'     => ['required', Rule::enum(ExpenseCategory::class)],
-            'expense_date' => ['required', 'date_format:Y-m-d'],
-        ]);
-
+        $data = $request->validated();
         $expense = Expense::create($data);
 
         return response()->json(['data' => $expense], 201);
@@ -52,14 +52,9 @@ class ExpenseController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Expense $expense): JsonResponse
+    public function update(UpdateExpenseRequest $request, Expense $expense): JsonResponse
     {
-        $data = $request->validate([
-            'description'  => ['required', 'string', 'max:255'],
-            'amount'       => ['required', 'numeric', 'gt:0'],
-            'category'     => ['required', Rule::enum(ExpenseCategory::class)],
-            'expense_date' => ['required', 'date_format:Y-m-d'],
-        ]);
+        $data = $request->validated();
 
         $expense->update($data);
 
@@ -74,5 +69,10 @@ class ExpenseController extends Controller
         $expense->delete();
 
         return response()->noContent();
+    }
+
+    public function summary(): JsonResponse
+    {
+        return response()->json(['data' => $this->expenseSummaryService->summarise()]);
     }
 }
