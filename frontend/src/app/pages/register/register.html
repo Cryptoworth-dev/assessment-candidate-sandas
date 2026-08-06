@@ -1,0 +1,39 @@
+<section class="card auth-card">
+  <h1>Create an account</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" type="text" formControlName="name" autocomplete="name" />
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <p class="error">Name is required.</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" autocomplete="email" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <p class="error">Enter a valid email address.</p>
+      } @else if (serverError('email')) {
+        <p class="error">{{ serverError('email') }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" formControlName="password" autocomplete="new-password" />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="error">Password must be at least 8 characters.</p>
+      } @else if (serverError('password')) {
+        <p class="error">{{ serverError('password') }}</p>
+      }
+    </div>
+
+    <button type="submit" class="primary" [disabled]="isSubmitting()">
+      {{ isSubmitting() ? 'Creating account…' : 'Create account' }}
+    </button>
+  </form>
+
+  <p class="muted">Already have an account? <a routerLink="/login">Log in</a></p>
+</section>

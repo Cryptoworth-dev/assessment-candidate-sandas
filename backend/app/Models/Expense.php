@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ExpenseCategory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
@@ -15,6 +16,7 @@ class Expense extends Model
         'amount',
         'category',
         'expense_date',
+        'user_id',
     ];
 
     protected function casts(): array
@@ -24,5 +26,10 @@ class Expense extends Model
             'category' => ExpenseCategory::class,
             'expense_date' => 'date:Y-m-d',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

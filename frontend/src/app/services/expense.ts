@@ -31,7 +31,7 @@ export class ExpenseService {
         if (filters.to) params = params.set('to', filters.to);
         if (filters.page) params = params.set('page', filters.page);
 
-        this.http.get<{data: Expense[]; meta: PaginationMeta}>(this.apiUrl, { params }).subscribe({
+        this.http.get<{data: Expense[]; meta: PaginationMeta}>(this.apiUrl, { params, withCredentials: true }).subscribe({
             next: (response) => {
                 this.expenses.set(response.data);
                 this.meta.set(response.meta);
@@ -45,7 +45,7 @@ export class ExpenseService {
     }
 
     loadSummary(): void {
-        this.http.get<{data: Summary}>(`${this.apiUrl}/summary`).subscribe({
+        this.http.get<{data: Summary}>(`${this.apiUrl}/summary`, { withCredentials: true }).subscribe({
             next: (response) => this.summary.set(response.data),
         });
     }
@@ -56,15 +56,15 @@ export class ExpenseService {
     }
 
     createExpense(input: InputExpense): Observable<{data: Expense}> {
-        return this.http.post<{data: Expense}>(this.apiUrl, input);
+        return this.http.post<{data: Expense}>(this.apiUrl, input, { withCredentials: true });
     }
 
     updateExpense(id: number,input: InputExpense): Observable<{data: Expense}> {
-        return this.http.put<{data: Expense}>(`${this.apiUrl}/${id}`, input);
+        return this.http.put<{data: Expense}>(`${this.apiUrl}/${id}`, input, { withCredentials: true });
     }
 
     deleteExpense(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+        return this.http.delete<void>(`${this.apiUrl}/${id}`, { withCredentials: true });
     }
 
     exportCsv(filters: ExpenseFilters = {}): void {

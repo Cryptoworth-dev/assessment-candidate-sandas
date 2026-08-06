@@ -1,0 +1,40 @@
+<header class="page-header">
+  <p class="muted">Record what you spend and see where it goes.</p>
+</header>
+
+<main class="page">
+  <app-expense-summary [summary]="expenseService.summary()"/>
+  <app-expense-chart [summary]="expenseService.summary()" />
+  <app-expense-form
+    [editing]="editing()"
+    (saved)="stopEditing()"
+    (cancelled)="stopEditing()"
+  />
+  <app-expense-list
+    [expenses]="expenseService.expenses()"
+    [isLoading]="expenseService.isLoading()"
+    [loadError]="expenseService.loadError()"
+    [editingId]="editing()?.id ?? null"
+    [meta]="expenseService.meta()"
+    (edit)="startEdit($event)"
+    (remove)="askDelete($event)"
+    (filtersChanged)="onFiltersChanged($event)"
+    (pageChanged)="onPageChanged($event)"
+  />
+</main>
+
+@if (pendingDelete(); as expense) {
+  <div class="backdrop" (click)="cancelDelete()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h3 id="confirm-title">Delete this expense?</h3>
+    <p>"{{ expense.description }}" will be permanently removed.</p>
+    <div class="actions">
+      <button type="button" class="danger" [disabled]="isDeleting()" (click)="confirmDelete()">
+        {{ isDeleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+      <button type="button" class="ghost" [disabled]="isDeleting()" (click)="cancelDelete()">
+        Cancel
+      </button>
+    </div>
+  </div>
+}
