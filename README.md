@@ -10,24 +10,21 @@ A user can add, list, edit and delete expenses, and see the total spend
 overall and per category. Summary totals are always computed from the stored
 expenses — nothing is stored pre-aggregated.
 
-**Current status:** back-end API is complete (CRUD, validation, summary
-endpoint). Front-end is scaffolded; UI implementation is in progress.
+**Current status:** fully functional. Back-end API and front-end UI are both complete and wired together. Full CRUD for expenses, add/edit form with client and server-side validation, delete with confirmation, spending summary with per-category breakdown.
 
 ## Tech Stack
 - Backend: Laravel 11 (PHP 8.4), REST JSON API
-- Frontend: Angular (standalone, CSS)
+- Frontend: Angular 22 (standalone components, signals, reactive forms, CSS)
 - Database: MySQL 8.4
 - Containerization: Docker Compose (api, db, web)
 
 ## Features
 
-- **Add an expense** — description, amount, category, date.
-- **List expenses** — most recent first.
-- **Edit and delete** an existing expense.
-- **Spending summary** — overall total and per-category totals, computed on
-  demand from the `expenses` table.
-- **Validation** on both ends — empty description, non-numeric or negative
-  amount, missing category or date are all rejected.
+- **Add/edit expense** — single reactive form that reuses for both create and edit (pre-fills on edit, shows "Update" vs. "Add" button accordingly).
+- **List expenses** — table view with loading, error, and empty states; most recent first; actions per row (Edit, Delete).
+- **Delete with confirmation** — modal dialog prevents accidental removal; shows "Deleting…" state during request.
+- **Spending summary** — displays overall total and per-category totals with a proportional bar breakdown showing each category's share.
+- **Validation** — client-side (required, length, min amount, date not in future) with inline error messages; server-side (422) validation errors displayed per field in the form.
 
 ## Architecture
 
@@ -45,6 +42,15 @@ endpoint). Front-end is scaffolded; UI implementation is in progress.
 │   ├── database/factories/ExpenseFactory.php
 │   └── database/seeders/ExpenseSeeder.php
 ├── frontend/                Angular application
+│   ├── src/app/
+│   │   ├── app.ts / app.html / app.css     # root shell — composes feature components & delete modal
+│   │   ├── components/
+│   │   │   ├── expense-list/               # table with loading/error/empty states
+│   │   │   ├── expense-form/               # add/edit reactive form
+│   │   │   └── expense-summary/            # totals & per-category breakdown with bar chart
+│   │   ├── services/expense.ts             # ExpenseService — API calls & signals
+│   │   ├── models/expense.ts               # Expense, InputExpense, Summary interfaces
+│   │   └── environments/                   # apiUrl config
 ├── docker/php/Dockerfile
 ├── docker-compose.yml
 └── README.md
@@ -55,6 +61,14 @@ endpoint). Front-end is scaffolded; UI implementation is in progress.
 Each piece has one job — the controller stays thin, the summary calculation
 is reusable and independently testable, and the API's JSON shape is decoupled
 from the model's internal representation.
+
+**Architecture, front-end:** The root `App` component owns cross-cutting state
+(currently-editing expense, delete-confirmation modal state) and composes three
+feature components (`ExpenseForm`, `ExpenseList`, `ExpenseSummary`) around a
+single `ExpenseService`. The service holds reactive signals (`expenses`,
+`summary`, `isLoading`, `loadError`) and orchestrates HTTP calls; components
+subscribe to those signals and emit output events for user actions. Reactive
+forms with client-side validation; server-side 422 errors displayed inline.
 
 **Data model — `expenses`:**
 
@@ -231,8 +245,14 @@ every request.
 
 ## Testing
 
-Not yet implemented. Planned: Pest tests covering the summary calculation
-(`ExpenseSummaryService`) and the validation rules in the form requests.
+**Back-end:** Pest tests not yet implemented. Planned: coverage of the summary
+calculation (`ExpenseSummaryService`) and validation rules in the form requests.
+
+**Front-end:** Vitest spec files exist for each component and service
+(`app.spec.ts`, `expense-list.spec.ts`, `expense-form.spec.ts`,
+`expense-summary.spec.ts`, `expense.spec.ts`), currently at Angular CLI
+boilerplate (basic imports/renders, no meaningful assertions). Run via `npm test`
+in the `frontend/` directory.
 
 ## Notes / Bonus Features
 
