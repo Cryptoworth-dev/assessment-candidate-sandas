@@ -30,3 +30,18 @@ export const CATEGORIES = [
     'Transport',
     'Rent',
 ];
+
+export interface ExpenseFilters {
+  category?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
+
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}

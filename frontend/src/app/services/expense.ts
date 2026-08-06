@@ -1,9 +1,9 @@
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Injectable, signal } from "@angular/core";
 import { Observable } from "rxjs";
 
 import { environment } from "../../environments/environment";
-import { Expense, InputExpense, Summary } from "../models/expense";
+import { Expense, ExpenseFilters, InputExpense, PaginationMeta, Summary } from "../models/expense";
 
 @Injectable({providedIn: "root"})
 export class ExpenseService {
@@ -15,17 +15,29 @@ export class ExpenseService {
     isLoading = signal(false);
     loadError = signal<string | null>(null);
 
-    loadExpenses(): void {
+    meta = signal<PaginationMeta | null>(null);
+
+    private currentFilters = signal<ExpenseFilters>({});
+
+    loadExpenses(filters: ExpenseFilters = {}): void {
+        this.currentFilters.set(filters);
         this.isLoading.set(true);
         this.loadError.set(null);
 
-        this.http.get<{data: Expense[]}>(this.apiUrl).subscribe({
+        let params = new HttpParams();
+        if (filters.category) params = params.set('category', filters.category);
+        if (filters.search) params = params.set('search', filters.search);
+        if (filters.from) params = params.set('from', filters.from);
+        if (filters.to) params = params.set('to', filters.to);
+        if (filters.page) params = params.set('page', filters.page);
+
+        this.http.get<{data: Expense[]; meta: PaginationMeta}>(this.apiUrl, { params }).subscribe({
             next: (response) => {
                 this.expenses.set(response.data);
+                this.meta.set(response.meta);
                 this.isLoading.set(false);
             },
             error: (error) => {
-                console.error('Error loading expenses:', error);
                 this.loadError.set('Failed to load expenses. Please try again later.');
                 this.isLoading.set(false);
             }

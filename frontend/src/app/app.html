@@ -15,8 +15,11 @@
     [isLoading]="expenseService.isLoading()"
     [loadError]="expenseService.loadError()"
     [editingId]="editing()?.id ?? null"
+    [meta]="expenseService.meta()"
     (edit)="startEdit($event)"
     (remove)="askDelete($event)"
+    (filtersChanged)="onFiltersChanged($event)"
+    (pageChanged)="onPageChanged($event)"
   />
 </main>
 

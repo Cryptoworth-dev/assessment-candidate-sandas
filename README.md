@@ -22,6 +22,7 @@ expenses — nothing is stored pre-aggregated.
 
 - **Add/edit expense** — single reactive form that reuses for both create and edit (pre-fills on edit, shows "Update" vs. "Add" button accordingly).
 - **List expenses** — table view with loading, error, and empty states; most recent first; actions per row (Edit, Delete).
+- **Filter and paginate** — search by description, filter by category and date range (debounced 300ms), with an active-filter indicator and "Clear all" button; results paginate at 15 per page with First/Prev/Next/Last controls and "Showing X–Y of Z" count.
 - **Delete with confirmation** — modal dialog prevents accidental removal; shows "Deleting…" state during request.
 - **Spending summary** — displays overall total and per-category totals with a proportional bar breakdown showing each category's share.
 - **Validation** — client-side (required, length, min amount, date not in future) with inline error messages; server-side (422) validation errors displayed per field in the form.
@@ -166,12 +167,22 @@ every request.
 
 | Method | Endpoint | Description | Success |
 |---|---|---|---|
-| `GET` | `/expenses` | List all expenses, most recent first | `200` |
+| `GET` | `/expenses` | List all expenses (paginated, filterable), most recent first | `200` |
 | `POST` | `/expenses` | Create an expense | `201` |
 | `GET` | `/expenses/{id}` | Retrieve a single expense | `200` |
 | `PUT` | `/expenses/{id}` | Replace an expense | `200` |
 | `DELETE` | `/expenses/{id}` | Delete an expense | `204` |
 | `GET` | `/expenses/summary` | Total and per-category spending | `200` |
+
+**Query parameters** (all optional, for `GET /expenses`):
+
+| Parameter | Type | Rules | Notes |
+|---|---|---|---|
+| `category` | string | must be one of the defined categories | Filter by exact category |
+| `search` | string | max 255 characters | Filter by description (substring match, case-insensitive) |
+| `from` | date | format `YYYY-MM-DD` | Filter by `expense_date >= from` |
+| `to` | date | format `YYYY-MM-DD`, must be `>= from` | Filter by `expense_date <= to` |
+| `page` | integer | `>= 1` | Page number (default 1, 15 results per page) |
 
 **Expense payload:**
 ```json
@@ -183,7 +194,30 @@ every request.
 }
 ```
 
-**Expense response:**
+**Expense list response** (paginated):
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "description": "Weekly groceries",
+      "amount": "12500.00",
+      "category": "Food",
+      "expense_date": "2026-08-01",
+      "created_at": "2026-08-05T09:14:22+00:00",
+      "updated_at": "2026-08-05T09:14:22+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 3,
+    "per_page": 15,
+    "total": 42
+  }
+}
+```
+
+**Single expense response** (from `GET /expenses/{id}` or `POST /expenses`):
 ```json
 {
   "data": {
@@ -276,7 +310,6 @@ in the `frontend/` directory.
 **With more time:**
 
 - Automated tests (Pest) around summary totals and validation.
-- Filtering by category/date range, and pagination on the list endpoint.
 - Soft deletes, so a removed expense can be recovered.
 - A `categories` table if categories need to become user-managed.
 - Structured logging / request-id header for traceability.
