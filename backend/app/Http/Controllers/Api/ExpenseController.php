@@ -45,8 +45,10 @@ class ExpenseController extends Controller
      */
     public function store(StoreExpenseRequest $request): ExpenseResource
     {
-        $data = $request->validated();
-        $expense = Expense::create($data);
+        $expense = Expense::create([
+            ...$request->validated(),
+            'user_id' => $request->user()->id,
+        ]);
 
         return new ExpenseResource($expense);
     }
@@ -94,6 +96,7 @@ class ExpenseController extends Controller
      private function filteredQuery(ListExpensesRequest $request): Builder
     {
         return Expense::query()
+        ->where('user_id', $request->user()->id)
             ->when($request->filled('category'), fn ($query) =>
                 $query->where('category', $request->string('category'))
             )
