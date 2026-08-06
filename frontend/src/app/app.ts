@@ -4,7 +4,7 @@ import { ExpenseSummary } from './components/expense-summary/expense-summary';
 import { ExpenseForm } from './components/expense-form/expense-form';
 import { ExpenseList } from './components/expense-list/expense-list';
 import { ExpenseService } from './services/expense';
-import { Expense } from './models/expense';
+import { Expense, ExpenseFilters } from './models/expense';
 
 @Component({
   selector: 'app-root',
@@ -19,8 +19,19 @@ export class App {
   protected pendingDelete = signal<Expense | null>(null);
   protected isDeleting = signal(false);
 
+  protected filters = signal<ExpenseFilters>({});
+
   ngOnInit(): void {
     this.expenseService.refresh();
+  }
+
+  protected onFiltersChanged(filters: ExpenseFilters): void {
+    this.filters.set(filters);
+    this.expenseService.loadExpenses(filters);
+  }
+
+  protected onPageChanged(page: number): void {
+    this.expenseService.loadExpenses({ ...this.filters(), page });
   }
 
   protected startEdit(expense: Expense): void {
