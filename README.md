@@ -10,102 +10,7 @@ A user can add, list, edit and delete expenses, and see the total spend
 overall and per category. Summary totals are always computed from the stored
 expenses — nothing is stored pre-aggregated.
 
-**Current status:** fully functional. Back-end API and front-end UI are both complete and wired together. Full CRUD for expenses, add/edit form with client and server-side validation, delete with confirmation, spending summary with per-category breakdown. Session-based authentication via Laravel Sanctum with CSRF protection and per-user data isolation.
-
-## Tech Stack
-- Backend: Laravel 11 (PHP 8.4), REST JSON API
-- Frontend: Angular 22 (standalone components, signals, reactive forms, CSS)
-- Database: MySQL 8.4
-- Containerization: Docker Compose (api, db, web)
-
-## Features
-
-- **User authentication** — secure session-based login and registration via Laravel Sanctum; CSRF protection via token-in-cookie pattern; session cookies marked HttpOnly.
-- **Per-user data isolation** — all expenses scoped to logged-in user; endpoint security via ownership checks (abort on user mismatch) preventing IDOR attacks.
-- **Add/edit expense** — single reactive form that reuses for both create and edit (pre-fills on edit, shows "Update" vs. "Add" button accordingly).
-- **List expenses** — table view with loading, error, and empty states; most recent first; actions per row (Edit, Delete).
-- **Filter and paginate** — search by description, filter by category and date range (debounced 300ms), with an active-filter indicator and "Clear all" button; results paginate at 15 per page with First/Prev/Next/Last controls and "Showing X–Y of Z" count.
-- **Delete with confirmation** — modal dialog prevents accidental removal; shows "Deleting…" state during request.
-- **Spending summary** — displays overall total and per-category totals with a proportional bar breakdown showing each category's share.
-- **Validation** — client-side (required, length, min amount, date not in future) with inline error messages; server-side (422) validation errors displayed per field in the form.
-
-## Architecture
-
-```
-.
-├── backend/                 Laravel API
-│   ├── app/
-│   │   ├── Enums/ExpenseCategory.php
-│   │   ├── Http/Controllers/Api/
-│   │   │   ├── ExpenseController.php       # CRUD with ownership checks & user filtering
-│   │   │   └── AuthController.php          # login, register, logout, me endpoints
-│   │   ├── Http/Requests/
-│   │   │   ├── StoreExpenseRequest
-│   │   │   ├── UpdateExpenseRequest
-│   │   │   ├── LoginRequest                # email, password validation
-│   │   │   └── RegisterRequest             # name, email, password validation
-│   │   ├── Http/Resources/ExpenseResource.php
-│   │   ├── Models/Expense.php              # BelongsTo User relationship
-│   │   ├── Services/ExpenseSummaryService.php
-│   │   └── config/cors.php                 # CORS setup for localhost:4200
-│   ├── database/migrations/
-│   │   └── 2026_08_06_150107_add_user_id_to_expenses_table.php
-│   ├── database/factories/ExpenseFactory.php
-│   └── database/seeders/ExpenseSeeder.php
-├── frontend/                Angular application
-│   ├── src/app/
-│   │   ├── app.ts / app.html               # router shell with persistent header
-│   │   ├── app.routes.ts                   # /login, /register, /expenses (guarded)
-│   │   ├── app.config.ts                   # XSRF & CSRF interceptor config
-│   │   ├── components/
-│   │   │   ├── expense-list/               # table with loading/error/empty states
-│   │   │   ├── expense-form/               # add/edit reactive form
-│   │   │   └── expense-summary/            # totals & per-category breakdown with bar chart
-│   │   ├── pages/
-│   │   │   ├── expenses-page/              # routed page wrapping expense UI & delete modal
-│   │   │   ├── login/                      # login form with email/password
-│   │   │   └── register/                   # registration form with name/email/password (min 8 chars)
-│   │   ├── services/
-│   │   │   ├── auth.ts                     # AuthService: login, register, logout, checkSession
-│   │   │   └── expense.ts                  # ExpenseService: API calls with withCredentials
-│   │   ├── guards/auth-guard.ts            # CanActivateFn gating /expenses route
-│   │   ├── interceptors/csrf.interceptor.ts # extracts XSRF token & adds X-XSRF-TOKEN header
-│   │   ├── models/
-│   │   │   ├── user.ts                     # User interface
-│   │   │   └── expense.ts                  # Expense, InputExpense, Summary interfaces
-│   │   ├── styles.css                      # .auth-card styling for login/register forms
-│   │   └── environments/                   # apiUrl config
-├── docker/php/Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
-**Layering, back-end:** controller → form request (validation) → model /
-`ExpenseSummaryService` (aggregation) → `ExpenseResource` (response shape).
-Each piece has one job — the controller stays thin, the summary calculation
-is reusable and independently testable, and the API's JSON shape is decoupled
-from the model's internal representation. All expense endpoints enforce ownership checks (`abort_if($expense->user_id !== $request->user()->id, 404)`) to prevent IDOR; the summary endpoint filters by authenticated user before aggregation.
-
-**Authentication, back-end:** Laravel Sanctum SPA mode using session-based (not token-based) authentication. The `AuthController` exposes `/login` (email/password), `/register` (name/email/password), `/logout`, and `/me` endpoints. Session cookies are HttpOnly and stateful; CSRF protection enforced via `web` middleware with `XSRF-TOKEN` cookie / `X-XSRF-TOKEN` header validation. All expense queries automatically filtered by `where('user_id', $request->user()->id)` to isolate data per user.
-
-**Architecture, front-end:** The root `App` component acts as a router shell, injecting `AuthService` to manage session state via `checkSession()` on init. The template gates `<router-outlet />` behind `!authService.isCheckingSession()`, preventing guard race conditions on page refresh. Three routes: `/login` and `/register` for unauthenticated users, `/expenses` (guarded by `authGuard`) for the expense-tracker UI. The `ExpensesPage` component owns expense-specific state (currently-editing, delete-confirmation modal) and composes three feature components (`ExpenseForm`, `ExpenseList`, `ExpenseSummary`) around a single `ExpenseService`. The service holds reactive signals (`expenses`, `summary`, `isLoading`, `loadError`) and orchestrates HTTP calls with `withCredentials: true` for session cookies; components subscribe to those signals and emit output events for user actions. Reactive forms with client-side validation; server-side 422 errors displayed inline.
-
-**CSRF protection, front-end:** The `csrf.interceptor.ts` functional interceptor runs on every HTTP request, extracting the `XSRF-TOKEN` cookie and adding the `X-XSRF-TOKEN` header. The `AuthService` explicitly fetches `/sanctum/csrf-cookie` (outside `/api`) before login/register/logout to ensure a fresh token is set. This pattern is inherent to Sanctum SPA mode and handles cross-origin credentials safely via the session cookie mechanism.
-
-**Data model — `expenses`:**
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `bigint unsigned` | Primary key |
-| `description` | `varchar(255)` | Required, non-empty |
-| `amount` | `decimal(12,2)` | Required, greater than zero |
-| `category` | `varchar(50)` | Fixed enum, validated |
-| `expense_date` | `date` | The date the expense occurred |
-| `created_at` / `updated_at` | `timestamp` | Managed by Eloquent |
-
-Indexed on `expense_date` (list ordering) and `category` (summary grouping).
-Categories: `Food`, `Transport`, `Rent`, `Utilities`, `Entertainment`,
-`Other` — a backed PHP enum in `app/Enums/ExpenseCategory.php`.
+**Current status:** fully functional. Back-end API and front-end UI are both complete and wired together. Full CRUD for expenses, add/edit form with client and server-side validation, delete with confirmation, spending summary with per-category breakdown. Session-based authentication via Laravel Sanctum with CSRF protection, per-user data isolation, and rate limiting on authentication endpoints to prevent brute-force attacks.
 
 ## Setup Instructions
 
@@ -186,6 +91,104 @@ the front-end from a different port.
 - `SESSION_DRIVER=cookie` — sessions stored in HttpOnly cookies (default in Laravel 11)
 - `CORS_ALLOWED_ORIGINS=http://localhost:4200` — allow frontend origin to send credentials
 - `CSRF_TRUSTED_HEADERS=X-CSRF-TOKEN,X-XSRF-TOKEN` — server trusts this header for CSRF validation
+
+## Tech Stack
+- Backend: Laravel 11 (PHP 8.4), REST JSON API
+- Frontend: Angular 22 (standalone components, signals, reactive forms, CSS)
+- Database: MySQL 8.4
+- Containerization: Docker Compose (api, db, web)
+
+## Features
+
+- **User authentication** — secure session-based login and registration via Laravel Sanctum; CSRF protection via token-in-cookie pattern; session cookies marked HttpOnly.
+- **Rate limiting** — built-in rate limiting (Laravel ThrottleRequests middleware) protects against brute-force attacks: 5 req/min on login/register per email+IP, 60 req/min on general API per user ID.
+- **Per-user data isolation** — all expenses scoped to logged-in user; endpoint security via ownership checks (abort on user mismatch) preventing IDOR attacks.
+- **Add/edit expense** — single reactive form that reuses for both create and edit (pre-fills on edit, shows "Update" vs. "Add" button accordingly).
+- **List expenses** — table view with loading, error, and empty states; most recent first; actions per row (Edit, Delete).
+- **Filter and paginate** — search by description, filter by category and date range (debounced 300ms), with an active-filter indicator and "Clear all" button; results paginate at 15 per page with First/Prev/Next/Last controls and "Showing X–Y of Z" count.
+- **Delete with confirmation** — modal dialog prevents accidental removal; shows "Deleting…" state during request.
+- **Spending summary** — displays overall total and per-category totals with a proportional bar breakdown showing each category's share.
+- **Validation** — client-side (required, length, min amount, date not in future) with inline error messages; server-side (422) validation errors displayed per field in the form.
+
+## Architecture
+
+```
+.
+├── backend/                 Laravel API
+│   ├── app/
+│   │   ├── Enums/ExpenseCategory.php
+│   │   ├── Http/Controllers/Api/
+│   │   │   ├── ExpenseController.php       # CRUD with ownership checks & user filtering
+│   │   │   └── AuthController.php          # login, register, logout, me endpoints
+│   │   ├── Http/Requests/
+│   │   │   ├── StoreExpenseRequest
+│   │   │   ├── UpdateExpenseRequest
+│   │   │   ├── LoginRequest                # email, password validation
+│   │   │   └── RegisterRequest             # name, email, password validation
+│   │   ├── Http/Resources/ExpenseResource.php
+│   │   ├── Models/Expense.php              # BelongsTo User relationship
+│   │   ├── Services/ExpenseSummaryService.php
+│   │   └── config/cors.php                 # CORS setup for localhost:4200
+│   ├── database/migrations/
+│   │   └── 2026_08_06_150107_add_user_id_to_expenses_table.php
+│   ├── database/factories/ExpenseFactory.php
+│   └── database/seeders/ExpenseSeeder.php
+├── frontend/                Angular application
+│   ├── src/app/
+│   │   ├── app.ts / app.html               # router shell with persistent header
+│   │   ├── app.routes.ts                   # /login, /register, /expenses (guarded)
+│   │   ├── app.config.ts                   # XSRF & CSRF interceptor config
+│   │   ├── components/
+│   │   │   ├── expense-list/               # table with loading/error/empty states
+│   │   │   ├── expense-form/               # add/edit reactive form
+│   │   │   └── expense-summary/            # totals & per-category breakdown with bar chart
+│   │   ├── pages/
+│   │   │   ├── expenses-page/              # routed page wrapping expense UI & delete modal
+│   │   │   ├── login/                      # login form with email/password
+│   │   │   └── register/                   # registration form with name/email/password (min 8 chars)
+│   │   ├── services/
+│   │   │   ├── auth.ts                     # AuthService: login, register, logout, checkSession
+│   │   │   └── expense.ts                  # ExpenseService: API calls with withCredentials
+│   │   ├── guards/auth-guard.ts            # CanActivateFn gating /expenses route
+│   │   ├── interceptors/csrf.interceptor.ts # extracts XSRF token & adds X-XSRF-TOKEN header
+│   │   ├── models/
+│   │   │   ├── user.ts                     # User interface
+│   │   │   └── expense.ts                  # Expense, InputExpense, Summary interfaces
+│   │   ├── styles.css                      # .auth-card styling for login/register forms
+│   │   └── environments/                   # apiUrl config
+├── docker/php/Dockerfile
+├── docker-compose.yml
+└── README.md
+```
+
+**Layering, back-end:** controller → form request (validation) → model /
+`ExpenseSummaryService` (aggregation) → `ExpenseResource` (response shape).
+Each piece has one job — the controller stays thin, the summary calculation
+is reusable and independently testable, and the API's JSON shape is decoupled
+from the model's internal representation. All expense endpoints enforce ownership checks (`abort_if($expense->user_id !== $request->user()->id, 404)`) to prevent IDOR; the summary endpoint filters by authenticated user before aggregation.
+
+**Authentication, back-end:** Laravel Sanctum SPA mode using session-based (not token-based) authentication. The `AuthController` exposes `/login` (email/password), `/register` (name/email/password), `/logout`, and `/me` endpoints. Session cookies are HttpOnly and stateful; CSRF protection enforced via `web` middleware with `XSRF-TOKEN` cookie / `X-XSRF-TOKEN` header validation. All expense queries automatically filtered by `where('user_id', $request->user()->id)` to isolate data per user.
+
+**Architecture, front-end:** The root `App` component acts as a router shell, injecting `AuthService` to manage session state via `checkSession()` on init. The template gates `<router-outlet />` behind `!authService.isCheckingSession()`, preventing guard race conditions on page refresh. Three routes: `/login` and `/register` for unauthenticated users, `/expenses` (guarded by `authGuard`) for the expense-tracker UI. The `ExpensesPage` component owns expense-specific state (currently-editing, delete-confirmation modal) and composes three feature components (`ExpenseForm`, `ExpenseList`, `ExpenseSummary`) around a single `ExpenseService`. The service holds reactive signals (`expenses`, `summary`, `isLoading`, `loadError`) and orchestrates HTTP calls with `withCredentials: true` for session cookies; components subscribe to those signals and emit output events for user actions. Reactive forms with client-side validation; server-side 422 errors displayed inline.
+
+**CSRF protection, front-end:** The `csrf.interceptor.ts` functional interceptor runs on every HTTP request, extracting the `XSRF-TOKEN` cookie and adding the `X-XSRF-TOKEN` header. The `AuthService` explicitly fetches `/sanctum/csrf-cookie` (outside `/api`) before login/register/logout to ensure a fresh token is set. This pattern is inherent to Sanctum SPA mode and handles cross-origin credentials safely via the session cookie mechanism.
+
+**Rate limiting, back-end:** Three named rate limiters (registered in `AppServiceProvider`) protect against abuse: (1) `api` — 60 req/min per authenticated user ID or IP for all `/api/*` routes; (2) `login` — 5 req/min per email+IP combination to prevent credential-stuffing; (3) `register` — 5 req/min per IP to prevent automated signup spam. Limiters stack on auth routes (login/register enforce both general and specific limits, with the tighter one taking precedence). Exceeding a limit returns `429 Too Many Requests` with rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `Retry-After`, `X-RateLimit-Reset`).
+
+**Data model — `expenses`:**
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `bigint unsigned` | Primary key |
+| `description` | `varchar(255)` | Required, non-empty |
+| `amount` | `decimal(12,2)` | Required, greater than zero |
+| `category` | `varchar(50)` | Fixed enum, validated |
+| `expense_date` | `date` | The date the expense occurred |
+| `created_at` / `updated_at` | `timestamp` | Managed by Eloquent |
+
+Indexed on `expense_date` (list ordering) and `category` (summary grouping).
+Categories: `Food`, `Transport`, `Rent`, `Utilities`, `Entertainment`,
+`Other` — a backed PHP enum in `app/Enums/ExpenseCategory.php`.
 
 ## API Endpoints
 
@@ -361,49 +364,64 @@ every request. **All expense endpoints require authentication** (valid session c
 { "message": "Resource not found." }
 ```
 
+`429 Too Many Requests` — rate limit exceeded:
+```json
+{ "message": "Too Many Attempts." }
+```
+**Headers:**
+- `X-RateLimit-Limit: 5` (max requests in window)
+- `X-RateLimit-Remaining: 0` (requests left)
+- `Retry-After: 52` (seconds to wait)
+- `X-RateLimit-Reset: 1691234567` (Unix timestamp when limit resets)
+
+## Rate Limiting
+
+The API implements three configurable rate limiters using Laravel's built-in `ThrottleRequests` middleware:
+
+| Limiter | Endpoint | Limit | Key | Purpose |
+|---|---|---|---|---|
+| `api` | All `/api/*` | 60/min | User ID (auth) or IP (guest) | General API protection |
+| `login` | `POST /api/login` | 5/min | email + IP | Prevent credential-stuffing attacks |
+| `register` | `POST /api/register` | 5/min | IP | Prevent automated signup spam |
+
+**Example:** If a user attempts to login 6 times in one minute:
+- Requests 1-5: return `422 Unprocessable Content` (validation error)
+- Request 6+: return `429 Too Many Requests` with rate limit headers
+
+**Configuration:**
+- Limiters are registered in `app/Providers/AppServiceProvider.php` via `RateLimiter::for()`
+- Middleware is applied in `bootstrap/app.php` (`$middleware->throttleApi()`) and routes (`routes/api.php`)
+- Adjust limits by modifying `.perMinute(N)` in `AppServiceProvider`
+- Rate limit state stored in cache (see `config/cache.php` for cache driver — use `redis` or `memcached` in production for shared state across instances)
+
+**Response headers on rate limit:**
+```
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 0
+Retry-After: 52
+X-RateLimit-Reset: 1691234567
+
+{"message":"Too Many Attempts."}
+```
+
+See `backend/RATE_LIMITING.md` for full documentation.
+
 ## Testing
 
-**Back-end:** Pest tests not yet implemented. Planned: coverage of the summary
-calculation (`ExpenseSummaryService`) and validation rules in the form requests.
+**Back-end:** 62 passing tests covering:
+- **Unit tests (9 tests):** `ExpenseSummaryServiceTest` — summary calculation, decimal precision, user filtering, category grouping and ordering, edge cases (zero amounts, large numbers).
+- **Feature tests (37 tests):** 
+  - `AuthApiTest` (11 tests) — registration, login validation, current user endpoint
+  - `ExpenseApiTest` (24 tests) — CRUD operations, authentication guards, per-user data isolation, IDOR prevention, validation rules, summary endpoint
+  - `RateLimitingTest` (16 tests) — login (5/min), register (5/min), general API (60/min) rate limits; keying logic; rate limit headers; stacked limiters; test isolation
+- Run all: `php artisan test` in the `backend/` directory
 
-**Front-end:** Vitest spec files exist for each component and service
-(`app.spec.ts`, `expense-list.spec.ts`, `expense-form.spec.ts`,
-`expense-summary.spec.ts`, `expense.spec.ts`), currently at Angular CLI
-boilerplate (basic imports/renders, no meaningful assertions). Run via `npm test`
-in the `frontend/` directory.
+**Front-end:** 5 major feature tests written:
+- `AuthService.spec.ts` — login, register, logout, session checking, CSRF cookie fetch
+- `auth-guard.spec.ts` — route protection, async guard resolution, session check polling with timeout
+- `csrf.interceptor.spec.ts` — token extraction from cookies, header injection, withCredentials enforcement
+- `ExpenseService.spec.ts` — API calls with withCredentials, filter parameters, error handling, CSV export
+- `LoginComponent.spec.ts` — form validation, login submission, error display, redirect on success
+- Run all: `npm test` in the `frontend/` directory
 
-## Notes / Bonus Features
-
-**Assumptions:**
-
-1. **Categories are a fixed enum, not a database table.** The brief lists
-   categories as examples rather than user-managed data, so a backed enum
-   keeps the schema simple. A `categories` table would be the first change if
-   users needed custom categories.
-2. **Amounts are `decimal(12,2)`, serialised as strings**, not floats — no
-   precision loss in JSON. The client parses the string for display
-   arithmetic.
-3. **Single currency**, no currency field — out of scope per the brief.
-4. **Expenses cannot be dated in the future.**
-5. **`PUT` replaces the whole resource**, so every field is required on
-   update; `PATCH` semantics were not implemented.
-6. **All expenses are per-user.** Expenses are scoped to the authenticated user via `where('user_id', auth()->id())` on all queries and ownership checks on individual resources.
-7. **Session-based authentication via Sanctum.** Users authenticate once per browser session; the server issues an HttpOnly session cookie that persists across page refreshes. No JWT tokens or API keys.
-8. **CSRF protection via token-in-cookie.** The server sets an `XSRF-TOKEN` cookie; the frontend automatically extracts it and adds the `X-XSRF-TOKEN` header to all state-changing requests (POST, PUT, DELETE).
-9. **List ordering is `expense_date DESC, id DESC`** — the id tiebreaker
-   keeps the order deterministic when expenses share a date.
-
-**With more time:**
-
-- Automated tests (Pest) around summary totals, validation, and authentication flows.
-- Unit tests for `AuthService`, `auth-guard`, and CSRF interceptor on the frontend.
-- Email verification on registration; password reset flow.
-- Remember-me token for longer session persistence without re-login.
-- Rate limiting on login/register endpoints to prevent brute-force attacks.
-- Soft deletes, so a removed expense can be recovered.
-- A `categories` table if categories need to become user-managed.
-- Structured logging / request-id header for traceability.
-
-**Commit convention:** [Conventional Commits](https://www.conventionalcommits.org/) —
-`type(scope): subject`, where `type` is one of `feat`, `fix`, `refactor`,
-`test`, `docs`, `chore`, and `scope` is `api`, `web`, `db` or `docker`.
