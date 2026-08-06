@@ -1,0 +1,25 @@
+<section class="card summary">
+  <div class="summary-total">
+    <span class="muted">Total spend</span>
+    <strong>{{ summary().total | currency: 'LKR' : 'symbol' : '1.2-2' }}</strong>
+  </div>
+
+  @if (summary().by_category.length > 0) {
+    <ul class="breakdown">
+      @for (row of summary().by_category; track row.category) {
+        <li>
+          <div class="breakdown-head">
+            <span>{{ row.category }}</span>
+            <span>
+              {{ row.total | currency: 'LKR' : 'symbol' : '1.2-2' }}
+              <small class="muted">{{ share(row) | percent: '1.0-0' }}</small>
+            </span>
+          </div>
+          <div class="bar"><div class="bar-fill" [style.width.%]="share(row) * 100"></div></div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="muted">Add an expense to see your breakdown.</p>
+  }
+</section>
