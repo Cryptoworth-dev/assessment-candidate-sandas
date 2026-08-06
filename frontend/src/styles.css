@@ -140,3 +140,11 @@ tbody tr:last-child td { border-bottom: none; }
   .filter-row { grid-template-columns: 1fr; }
   .list-footer { flex-direction: column; gap: .5rem; align-items: flex-start; }
 }
+
+.chart-wrap {
+  max-width: 320px;
+  margin: 0 auto;
+}
+.is-hidden {
+  display: none;
+}

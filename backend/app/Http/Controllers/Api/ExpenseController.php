@@ -13,26 +13,27 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Http\Requests\ListExpensesRequest;
 use App\Services\ExpenseSummaryService;
+use App\Services\ExpenseCsvExportService;
 use App\Http\Resources\ExpenseResource;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Database\Eloquent\Builder;
 
 class ExpenseController extends Controller
 {
-    public function __construct(private readonly ExpenseSummaryService $expenseSummaryService)
+    public function __construct(
+        private readonly ExpenseSummaryService $expenseSummaryService,
+        private readonly ExpenseCsvExportService $expenseCsvExportService
+    )
     {
     }
+    
     /**
      * Display a listing of the resource.
      */
     public function index(ListExpensesRequest $request): AnonymousResourceCollection
     {
-        $expenses = Expense::query()
-            ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
-            ->when($request->filled('search'), fn ($query) => $query->where('description', 'like', '%' . $request->string('search') . '%'))
-            ->when($request->filled('from'), fn ($query) => $query->whereDate('expense_date', '>=', $request->date('from')))
-            ->when($request->filled('to'), fn ($query) => $query->whereDate('expense_date', '<=', $request->date('to')))
-            ->orderByDesc('expense_date')
-            ->orderByDesc('id')
+        $expenses = $this->filteredQuery($request)
             ->paginate(perPage: 15)
             ->withQueryString();
             
@@ -83,5 +84,29 @@ class ExpenseController extends Controller
     public function summary(): JsonResponse
     {
         return response()->json(['data' => $this->expenseSummaryService->summarise()]);
+    }
+
+    public function export(ListExpensesRequest $request): StreamedResponse
+    {
+        return $this->expenseCsvExportService->stream($this->filteredQuery($request));
+    }
+
+     private function filteredQuery(ListExpensesRequest $request): Builder
+    {
+        return Expense::query()
+            ->when($request->filled('category'), fn ($query) =>
+                $query->where('category', $request->string('category'))
+            )
+            ->when($request->filled('search'), fn ($query) =>
+                $query->where('description', 'like', '%' . $request->string('search') . '%')
+            )
+            ->when($request->filled('from'), fn ($query) =>
+                $query->whereDate('expense_date', '>=', $request->date('from'))
+            )
+            ->when($request->filled('to'), fn ($query) =>
+                $query->whereDate('expense_date', '<=', $request->date('to'))
+            )
+            ->orderByDesc('expense_date')
+            ->orderByDesc('id');
     }
 }

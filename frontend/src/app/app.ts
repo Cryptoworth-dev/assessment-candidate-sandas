@@ -5,10 +5,11 @@ import { ExpenseForm } from './components/expense-form/expense-form';
 import { ExpenseList } from './components/expense-list/expense-list';
 import { ExpenseService } from './services/expense';
 import { Expense, ExpenseFilters } from './models/expense';
+import { ExpenseChart } from './components/expense-chart/expense-chart';
 
 @Component({
   selector: 'app-root',
-  imports: [ExpenseSummary, ExpenseForm, ExpenseList],
+  imports: [ExpenseSummary, ExpenseForm, ExpenseList, ExpenseChart],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
