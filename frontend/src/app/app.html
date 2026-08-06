@@ -5,6 +5,7 @@
 
 <main class="page">
   <app-expense-summary [summary]="expenseService.summary()"/>
+  <app-expense-chart [summary]="expenseService.summary()" />
   <app-expense-form
     [editing]="editing()"
     (saved)="stopEditing()"

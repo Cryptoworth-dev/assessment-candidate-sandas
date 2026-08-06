@@ -1,0 +1,11 @@
+<section class="card">
+  <h2>Spending by category</h2>
+
+  @if (summary().by_category.length === 0) {
+    <p class="muted">Add an expense to see the breakdown.</p>
+  }
+
+  <div class="chart-wrap" [class.is-hidden]="summary().by_category.length === 0">
+    <canvas #canvas></canvas>
+  </div>
+</section>
