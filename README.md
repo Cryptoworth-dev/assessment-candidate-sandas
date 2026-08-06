@@ -425,3 +425,4 @@ See `backend/RATE_LIMITING.md` for full documentation.
 - `LoginComponent.spec.ts` — form validation, login submission, error display, redirect on success
 - Run all: `npm test` in the `frontend/` directory
 
+
