@@ -148,3 +148,15 @@ tbody tr:last-child td { border-bottom: none; }
 .is-hidden {
   display: none;
 }
+
+.auth-card {
+  max-width: 380px;
+  margin: 3rem auto;
+}
+.auth-card h1 {
+  margin: 0 0 1.25rem;
+  font-size: 1.35rem;
+}
+.auth-card form { display: flex; flex-direction: column; gap: 1rem; }
+.auth-card .primary { margin-top: .25rem; }
+.auth-card p { margin: 1rem 0 0; }

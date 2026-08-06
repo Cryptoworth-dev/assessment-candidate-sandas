@@ -1,0 +1,73 @@
+import { Component, inject, signal } from '@angular/core';
+import { ExpenseSummary } from '../../components/expense-summary/expense-summary';
+import { ExpenseForm } from '../../components/expense-form/expense-form';
+import { ExpenseList } from '../../components/expense-list/expense-list';
+import { ExpenseService } from '../../services/expense';
+import { Expense, ExpenseFilters } from '../../models/expense';
+import { ExpenseChart } from '../../components/expense-chart/expense-chart';
+
+@Component({
+  selector: 'app-expenses-page',
+  imports: [ExpenseSummary, ExpenseForm, ExpenseList, ExpenseChart],
+  templateUrl: './expenses-page.html',
+  styleUrl: './expenses-page.css',
+})
+export class ExpensesPage {
+  protected expenseService = inject(ExpenseService);
+
+  protected editing = signal<Expense | null>(null);
+  protected pendingDelete = signal<Expense | null>(null);
+  protected isDeleting = signal(false);
+
+  protected filters = signal<ExpenseFilters>({});
+
+  ngOnInit(): void {
+    this.expenseService.refresh();
+  }
+
+  protected onFiltersChanged(filters: ExpenseFilters): void {
+    this.filters.set(filters);
+    this.expenseService.loadExpenses(filters);
+  }
+
+  protected onPageChanged(page: number): void {
+    this.expenseService.loadExpenses({ ...this.filters(), page });
+  }
+
+  protected startEdit(expense: Expense): void {
+    this.editing.set(expense);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected stopEditing(): void {
+    this.editing.set(null);
+  }
+
+  protected askDelete(expense: Expense): void {
+    this.pendingDelete.set(expense);
+  }
+
+  protected cancelDelete(): void {
+    this.pendingDelete.set(null);
+  }
+
+  protected confirmDelete(): void {
+    const expense = this.pendingDelete();
+    if (!expense) return;
+
+    this.isDeleting.set(true);
+    this.expenseService.deleteExpense(expense.id).subscribe({
+      next: () => {
+        this.isDeleting.set(false);
+        this.pendingDelete.set(null);
+        this.expenseService.refresh();
+      },
+      error: (error) => {
+        console.error('Error deleting expense:', error);
+        this.isDeleting.set(false);
+        this.pendingDelete.set(null);
+        alert('Failed to delete the expense. Please try again later.');
+      }
+    });
+  }
+}
