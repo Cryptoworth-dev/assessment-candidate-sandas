@@ -56,8 +56,10 @@ class ExpenseController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Expense $expense): ExpenseResource
+    public function show(Request $request, Expense $expense): ExpenseResource
     {
+        abort_if($expense->user_id !== $request->user()->id, 404);
+
         return new ExpenseResource($expense);
     }
 
@@ -66,6 +68,8 @@ class ExpenseController extends Controller
      */
     public function update(UpdateExpenseRequest $request, Expense $expense): ExpenseResource
     {
+        abort_if($expense->user_id !== $request->user()->id, 404);
+
         $data = $request->validated();
 
         $expense->update($data);
@@ -76,16 +80,19 @@ class ExpenseController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Expense $expense): Response
+    public function destroy(Request $request, Expense $expense): Response
     {
+        abort_if($expense->user_id !== $request->user()->id, 404);
+
         $expense->delete();
 
         return response()->noContent();
     }
 
-    public function summary(): JsonResponse
+    public function summary(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->expenseSummaryService->summarise()]);
+        $query = Expense::query()->where('user_id', $request->user()->id);
+        return response()->json(['data' => $this->expenseSummaryService->summarise($query)]);
     }
 
     public function export(ListExpensesRequest $request): StreamedResponse
