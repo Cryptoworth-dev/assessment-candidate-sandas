@@ -66,4 +66,17 @@ export class ExpenseService {
     deleteExpense(id: number): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
+
+    exportCsv(filters: ExpenseFilters = {}): void {
+        let params = new HttpParams();
+        if (filters.category) params = params.set('category', filters.category);
+        if (filters.search) params = params.set('search', filters.search);
+        if (filters.from) params = params.set('from', filters.from);
+        if (filters.to) params = params.set('to', filters.to);
+
+        const query = params.toString();
+        const url = query ? `${this.apiUrl}/export?${query}` : `${this.apiUrl}/export`;
+
+        window.open(url, '_blank');
+    }
 }

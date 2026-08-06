@@ -5,6 +5,7 @@ import { CATEGORIES, Expense, ExpenseFilters, PaginationMeta } from '../../model
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime } from 'rxjs/internal/operators/debounceTime';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ExpenseService } from '../../services/expense';
 
 @Component({
   selector: 'app-expense-list',
@@ -29,6 +30,7 @@ export class ExpenseList {
   categories = CATEGORIES;
 
   private fb = inject(NonNullableFormBuilder);  
+  private expenseService = inject(ExpenseService);
 
   filterForm = this.fb.group({
     category: this.fb.control(''),
@@ -74,4 +76,15 @@ export class ExpenseList {
     if (!m) return 0;
     return Math.min(m.current_page * m.per_page, m.total);
   });
+  
+  exportCsv(): void {
+  const value = this.filterForm.value;
+
+  this.expenseService.exportCsv({
+    category: value.category || undefined,
+    search: value.search || undefined,
+    from: value.from || undefined,
+    to: value.to || undefined,
+  });
+}
 }
