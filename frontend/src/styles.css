@@ -1,1 +1,106 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --border: #e2e1dc;
+  --text: #23231f;
+  --muted: #71706a;
+  --accent: #2f6f4f;
+  --danger: #b3261e;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 2rem 1rem 4rem;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.page, .page-header { max-width: 860px; margin: 0 auto; }
+.page { display: grid; gap: 1.25rem; }
+.page-header h1 { margin: 0 0 .25rem; font-size: 1.75rem; font-weight: 600; }
+.muted { color: var(--muted); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.card h2 { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 600; }
+
+.field { display: grid; gap: .35rem; margin-bottom: 1rem; }
+.field-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+label { font-size: .875rem; font-weight: 500; }
+
+input, select {
+  padding: .55rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.error { margin: 0; color: var(--danger); font-size: .8125rem; }
+.error-box {
+  padding: .75rem;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+}
+
+button { font: inherit; border-radius: 8px; cursor: pointer; }
+button:disabled { opacity: .6; cursor: not-allowed; }
+.primary { padding: .55rem 1.1rem; border: none; background: var(--accent); color: #fff; }
+.ghost { padding: .55rem 1.1rem; border: 1px solid var(--border); background: transparent; }
+.danger { padding: .55rem 1.1rem; border: none; background: var(--danger); color: #fff; }
+.link { padding: .2rem .4rem; border: none; background: none; color: var(--accent); }
+.link.danger { background: none; color: var(--danger); }
+.actions { display: flex; gap: .5rem; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .65rem .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-size: .8125rem; color: var(--muted); font-weight: 500; }
+tbody tr:last-child td { border-bottom: none; }
+.right { text-align: right; }
+.is-editing { background: #f0f6f2; }
+.tag {
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: .8125rem;
+}
+
+.summary-total { display: flex; justify-content: space-between; align-items: baseline; }
+.summary-total strong { font-size: 1.5rem; }
+.breakdown { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: .75rem; }
+.breakdown-head { display: flex; justify-content: space-between; font-size: .9rem; }
+.bar { height: 6px; margin-top: .35rem; border-radius: 3px; background: var(--bg); }
+.bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+
+.backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / .35); }
+.modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(400px, calc(100vw - 2rem));
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 640px) {
+  .field-row { grid-template-columns: 1fr; }
+}

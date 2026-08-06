@@ -19,9 +19,9 @@ export class ExpenseService {
         this.isLoading.set(true);
         this.loadError.set(null);
 
-        this.http.get<Expense[]>(this.apiUrl).subscribe({
-            next: (data) => {
-                this.expenses.set(data);
+        this.http.get<{data: Expense[]}>(this.apiUrl).subscribe({
+            next: (response) => {
+                this.expenses.set(response.data);
                 this.isLoading.set(false);
             },
             error: (error) => {
