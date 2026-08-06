@@ -1,1 +1,63 @@
-<p>expense-form works!</p>
+<form class="card" [formGroup]="form" (ngSubmit)="submit()">
+    <h2>{{ editing() ? 'Edit Expense' : 'Add Expense' }}</h2>
+
+    <div class="field">
+        <label for="description">Description</label>
+        <input id="description" type="text" formControlName="description" maxlength="255" />
+
+        @if (form.controls.description.touched && form.controls.description.invalid) {
+            <p class="error">Description is required (max 255 characters).</p>
+        } @else if (serverError('description')) {
+            <p class="error">{{ serverError('description') }}</p>
+        }
+    </div>
+  
+    <div class="field-row">
+        <div class="field">
+        <label for="amount">Amount</label>
+        <input id="amount" type="number" formControlName="amount" step="0.01" min="0.01" />
+
+        @if (form.controls.amount.touched && form.controls.amount.invalid) {
+            <p class="error">Enter an amount greater than zero.</p>
+        } @else if (serverError('amount')) {
+            <p class="error">{{ serverError('amount') }}</p>
+        }
+        </div>
+
+        <div class="field">
+        <label for="category">Category</label>
+        <select id="category" formControlName="category">
+            <option value="" disabled>Select a category</option>
+            @for (category of categories; track category) {
+            <option [value]="category">{{ category }}</option>
+            }
+        </select>
+
+        @if (form.controls.category.touched && form.controls.category.invalid) {
+            <p class="error">Category is required.</p>
+        } @else if (serverError('category')) {
+            <p class="error">{{ serverError('category') }}</p>
+        }
+        </div>
+
+        <div class="field">
+        <label for="expense_date">Date</label>
+        <input id="expense_date" type="date" formControlName="expense_date" [max]="today" />
+
+        @if (form.controls.expense_date.touched && form.controls.expense_date.invalid) {
+            <p class="error">Date is required.</p>
+        } @else if (serverError('expense_date')) {
+            <p class="error">{{ serverError('expense_date') }}</p>
+        }
+        </div>
+    </div>
+
+    <div class="actions">
+        <button type="submit" class="primary" [disabled]="isSaving()">
+            {{ isSaving() ? 'Saving…' : editing() ? 'Update Expense' : 'Add Expense' }}
+        </button>
+        <button type="button" class="ghost" (click)="cancel()">
+            Cancel
+        </button>
+    </div>
+</form>

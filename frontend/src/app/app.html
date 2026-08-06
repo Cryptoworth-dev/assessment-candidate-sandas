@@ -5,7 +5,11 @@
 
 <main class="page">
   <app-expense-summary [summary]="expenseService.summary()"/>
-  <app-expense-form/>
+  <app-expense-form
+    [editing]="editing()"
+    (saved)="stopEditing()"
+    (cancelled)="stopEditing()"
+  />
   <app-expense-list
     [expenses]="expenseService.expenses()"
     [isLoading]="expenseService.isLoading()"

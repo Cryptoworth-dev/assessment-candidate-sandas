@@ -21,10 +21,10 @@
       <tbody>
         @for (expense of expenses(); track expense.id) {
           <tr [class.is-editing]="expense.id === editingId()">
-            <td>{{ expense.expense_date | date: 'mediumDate' : 'UTC' }}</td>
+            <td>{{ expense.expense_date | date: 'mediumDate' }}</td>
             <td>{{ expense.description }}</td>
             <td><span class="tag">{{ expense.category }}</span></td>
-            <td class="right">{{ expense.amount | currency: 'LKR' : 'symbol' : '1.2-2' }}</td>
+            <td class="right">{{ expense.amount | currency: 'LKR ' : 'symbol' : '1.2-2' }}</td>
             <td class="right">
               <button type="button" class="link" (click)="edit.emit(expense)">Edit</button>
               <button type="button" class="link danger" (click)="remove.emit(expense)">Delete</button>
